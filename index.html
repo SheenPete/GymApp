@@ -1,0 +1,832 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no, viewport-fit=cover" />
+  <meta name="apple-mobile-web-app-capable" content="yes" />
+  <meta name="apple-mobile-web-app-status-bar-style" content="black-translucent" />
+  <meta name="apple-mobile-web-app-title" content="Iron Log" />
+  <meta name="theme-color" content="#0a0a0a" />
+  <title>Iron Log — Dumbbell Tracker</title>
+
+  <link rel="preconnect" href="https://fonts.googleapis.com" />
+  <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin />
+  <link href="https://fonts.googleapis.com/css2?family=Antonio:wght@400;500;600;700&family=Plus+Jakarta+Sans:wght@400;500;600;700&family=JetBrains+Mono:wght@400;500;600&display=swap" rel="stylesheet" />
+
+  <style>
+    *, *::before, *::after { box-sizing: border-box; }
+    html, body { margin: 0; padding: 0; }
+    body {
+      background: #0a0a0a;
+      color: #f5f5f4;
+      font-family: 'Plus Jakarta Sans', -apple-system, BlinkMacSystemFont, sans-serif;
+      -webkit-font-smoothing: antialiased;
+      -webkit-tap-highlight-color: transparent;
+      overscroll-behavior: none;
+      padding-bottom: env(safe-area-inset-bottom);
+    }
+    button { font-family: inherit; cursor: pointer; border: none; background: none; color: inherit; padding: 0; }
+    button:focus-visible { outline: 2px solid #d4ff3a; outline-offset: 2px; }
+
+    .font-display { font-family: 'Antonio', sans-serif; letter-spacing: -0.01em; }
+    .font-mono { font-family: 'JetBrains Mono', monospace; }
+
+    .app { max-width: 480px; margin: 0 auto; min-height: 100vh; padding-bottom: 3rem; }
+
+    /* Header */
+    .header {
+      position: sticky;
+      top: 0;
+      z-index: 30;
+      background: rgba(10, 10, 10, 0.95);
+      backdrop-filter: blur(12px);
+      -webkit-backdrop-filter: blur(12px);
+      border-bottom: 1px solid #1c1917;
+      padding-top: env(safe-area-inset-top);
+    }
+    .header-inner { padding: 20px 20px 16px; }
+    .header-top {
+      display: flex;
+      align-items: center;
+      justify-content: space-between;
+      margin-bottom: 16px;
+    }
+    .logo {
+      display: flex;
+      align-items: center;
+      gap: 8px;
+    }
+    .logo-icon {
+      width: 28px;
+      height: 28px;
+      border-radius: 6px;
+      background: #d4ff3a;
+      display: flex;
+      align-items: center;
+      justify-content: center;
+      color: #000;
+    }
+    .logo-text {
+      font-family: 'Antonio', sans-serif;
+      font-size: 20px;
+      font-weight: 600;
+      text-transform: uppercase;
+      letter-spacing: 0.05em;
+    }
+    .today-label {
+      font-family: 'JetBrains Mono', monospace;
+      font-size: 10px;
+      text-transform: uppercase;
+      letter-spacing: 0.2em;
+      color: #78716c;
+    }
+
+    /* Frequency selector */
+    .freq-row {
+      display: flex;
+      gap: 6px;
+      margin-bottom: 16px;
+    }
+    .freq-btn {
+      flex: 1;
+      padding: 9px 0;
+      border-radius: 6px;
+      font-size: 11px;
+      font-weight: 600;
+      letter-spacing: 0.08em;
+      text-transform: uppercase;
+      background: #1c1917;
+      color: #78716c;
+      transition: all 0.15s;
+    }
+    .freq-btn.active {
+      background: #f5f5f4;
+      color: #000;
+    }
+
+    /* Day selector */
+    .day-row {
+      display: flex;
+      gap: 6px;
+      overflow-x: auto;
+      margin: 0 -20px;
+      padding: 0 20px 4px;
+      scrollbar-width: none;
+    }
+    .day-row::-webkit-scrollbar { display: none; }
+    .day-btn {
+      flex-shrink: 0;
+      padding: 7px 14px;
+      border-radius: 6px;
+      font-size: 11px;
+      font-weight: 600;
+      letter-spacing: 0.08em;
+      text-transform: uppercase;
+      border: 1px solid #292524;
+      color: #a8a29e;
+      background: transparent;
+      white-space: nowrap;
+      transition: all 0.15s;
+    }
+    .day-btn.active {
+      background: #d4ff3a;
+      color: #000;
+      border-color: #d4ff3a;
+    }
+
+    /* Progress bar */
+    .progress-bar {
+      height: 2px;
+      background: #1c1917;
+      position: relative;
+      overflow: hidden;
+    }
+    .progress-fill {
+      position: absolute;
+      left: 0;
+      top: 0;
+      height: 100%;
+      background: #d4ff3a;
+      transition: width 0.5s ease-out;
+    }
+
+    /* Workout header */
+    .workout-header {
+      padding: 28px 20px 20px;
+    }
+    .workout-name {
+      font-family: 'Antonio', sans-serif;
+      font-size: 36px;
+      font-weight: 700;
+      text-transform: uppercase;
+      letter-spacing: -0.01em;
+      line-height: 1;
+      margin: 0 0 8px;
+    }
+    .workout-focus {
+      color: #78716c;
+      font-size: 14px;
+      margin: 0;
+    }
+    .workout-stats {
+      display: flex;
+      align-items: center;
+      gap: 16px;
+      margin-top: 16px;
+      font-family: 'JetBrains Mono', monospace;
+      font-size: 10px;
+      text-transform: uppercase;
+      letter-spacing: 0.15em;
+      color: #a8a29e;
+    }
+    .stat-flame { color: #d4ff3a; }
+    .stat-sep { color: #44403c; }
+
+    /* Exercise cards */
+    .exercise-list {
+      padding: 0 20px;
+      display: flex;
+      flex-direction: column;
+      gap: 12px;
+    }
+    .exercise-card {
+      background: #141414;
+      border-radius: 14px;
+      border: 1px solid #1c1917;
+      padding: 16px;
+      transition: all 0.2s;
+    }
+    .exercise-card.done {
+      border-color: rgba(212, 255, 58, 0.3);
+      background: rgba(212, 255, 58, 0.03);
+    }
+    .ex-header {
+      display: flex;
+      align-items: flex-start;
+      justify-content: space-between;
+      gap: 12px;
+      margin-bottom: 12px;
+    }
+    .ex-title-block { flex: 1; min-width: 0; }
+    .ex-name-row {
+      display: flex;
+      align-items: center;
+      gap: 8px;
+      margin-bottom: 4px;
+    }
+    .ex-num {
+      font-family: 'JetBrains Mono', monospace;
+      font-size: 10px;
+      color: #44403c;
+      font-weight: 500;
+    }
+    .ex-name {
+      font-family: 'Antonio', sans-serif;
+      font-size: 18px;
+      font-weight: 600;
+      text-transform: uppercase;
+      letter-spacing: 0.02em;
+      line-height: 1;
+      margin: 0;
+    }
+    .exercise-card.done .ex-name { color: #78716c; }
+    .ex-muscles {
+      font-size: 11px;
+      color: #78716c;
+      margin: 6px 0 0;
+    }
+    .info-btn {
+      flex-shrink: 0;
+      width: 28px;
+      height: 28px;
+      border-radius: 6px;
+      background: #1c1917;
+      display: flex;
+      align-items: center;
+      justify-content: center;
+      color: #a8a29e;
+      transition: background 0.15s;
+    }
+    .info-btn:hover { background: #292524; }
+
+    /* Stats row */
+    .ex-stats {
+      display: flex;
+      align-items: center;
+      gap: 14px;
+      margin-bottom: 14px;
+      font-family: 'JetBrains Mono', monospace;
+      font-size: 11px;
+      flex-wrap: wrap;
+    }
+    .stat-num { color: #f5f5f4; font-weight: 600; }
+    .stat-label {
+      color: #57534e;
+      text-transform: uppercase;
+      font-size: 9px;
+      letter-spacing: 0.1em;
+      margin-left: 2px;
+    }
+    .stat-rpe { color: #d4ff3a; font-weight: 600; }
+    .stat-sep-sm { color: #44403c; }
+
+    /* Set toggles */
+    .set-row {
+      display: flex;
+      gap: 8px;
+    }
+    .set-btn {
+      flex: 1;
+      height: 44px;
+      border-radius: 6px;
+      font-family: 'JetBrains Mono', monospace;
+      font-size: 12px;
+      font-weight: 700;
+      background: #1c1917;
+      color: #57534e;
+      border: 1px solid #292524;
+      transition: all 0.15s;
+      display: flex;
+      align-items: center;
+      justify-content: center;
+    }
+    .set-btn:active { transform: scale(0.96); }
+    .set-btn.done {
+      background: #d4ff3a;
+      color: #000;
+      border-color: #d4ff3a;
+    }
+    .set-btn .check {
+      width: 16px;
+      height: 16px;
+      stroke: currentColor;
+      stroke-width: 3;
+      fill: none;
+    }
+
+    /* Notes */
+    .ex-notes {
+      margin-top: 14px;
+      padding-top: 12px;
+      border-top: 1px solid #1c1917;
+      animation: slideIn 0.3s ease-out;
+    }
+    .notes-label {
+      font-family: 'JetBrains Mono', monospace;
+      font-size: 10px;
+      text-transform: uppercase;
+      letter-spacing: 0.15em;
+      color: #57534e;
+      font-weight: 600;
+      margin: 0 0 6px;
+    }
+    .notes-text {
+      color: #d6d3d1;
+      font-size: 13px;
+      line-height: 1.6;
+      margin: 0;
+    }
+    @keyframes slideIn {
+      from { opacity: 0; transform: translateY(-4px); }
+      to { opacity: 1; transform: translateY(0); }
+    }
+
+    /* Reset button */
+    .reset-btn {
+      width: calc(100% - 40px);
+      margin: 28px 20px 0;
+      padding: 12px;
+      background: #1c1917;
+      border: 1px solid #292524;
+      border-radius: 6px;
+      color: #78716c;
+      font-size: 11px;
+      font-weight: 600;
+      text-transform: uppercase;
+      letter-spacing: 0.1em;
+      display: flex;
+      align-items: center;
+      justify-content: center;
+      gap: 8px;
+      transition: color 0.15s;
+    }
+    .reset-btn:hover { color: #d6d3d1; }
+
+    /* Complete badge */
+    .complete-badge {
+      margin: 24px 20px 0;
+      padding: 20px;
+      border-radius: 14px;
+      border: 1px solid rgba(212, 255, 58, 0.3);
+      background: rgba(212, 255, 58, 0.05);
+      text-align: center;
+      box-shadow: 0 0 24px rgba(212, 255, 58, 0.15);
+      animation: slideIn 0.3s ease-out;
+    }
+    .complete-title {
+      font-family: 'Antonio', sans-serif;
+      font-size: 28px;
+      font-weight: 700;
+      text-transform: uppercase;
+      letter-spacing: -0.01em;
+      color: #d4ff3a;
+      margin: 0;
+    }
+    .complete-sub {
+      color: #a8a29e;
+      font-size: 13px;
+      margin: 8px 0 0;
+    }
+
+    /* Footer */
+    .footer {
+      margin: 40px 20px 0;
+    }
+    .footer-label {
+      font-family: 'JetBrains Mono', monospace;
+      font-size: 10px;
+      text-transform: uppercase;
+      letter-spacing: 0.15em;
+      color: #44403c;
+      margin: 0 0 12px;
+    }
+    .footer-list {
+      list-style: none;
+      padding: 0;
+      margin: 0;
+      font-size: 11px;
+      color: #78716c;
+      line-height: 1.7;
+    }
+    .footer-list li::before {
+      content: "•";
+      margin-right: 6px;
+      color: #44403c;
+    }
+
+    /* Modal */
+    .modal-backdrop {
+      position: fixed;
+      inset: 0;
+      z-index: 50;
+      background: rgba(0, 0, 0, 0.8);
+      backdrop-filter: blur(4px);
+      -webkit-backdrop-filter: blur(4px);
+      display: flex;
+      align-items: flex-end;
+      justify-content: center;
+      padding: 16px;
+      padding-bottom: max(16px, env(safe-area-inset-bottom));
+    }
+    @media (min-width: 640px) {
+      .modal-backdrop { align-items: center; }
+    }
+    .modal {
+      background: #141414;
+      border: 1px solid #292524;
+      border-radius: 14px;
+      padding: 20px;
+      max-width: 380px;
+      width: 100%;
+      animation: slideIn 0.3s ease-out;
+    }
+    .modal-title {
+      font-family: 'Antonio', sans-serif;
+      font-size: 22px;
+      font-weight: 600;
+      text-transform: uppercase;
+      letter-spacing: -0.01em;
+      margin: 0 0 8px;
+    }
+    .modal-text {
+      color: #a8a29e;
+      font-size: 13px;
+      margin: 0 0 20px;
+    }
+    .modal-actions { display: flex; gap: 8px; }
+    .modal-btn {
+      flex: 1;
+      padding: 12px;
+      border-radius: 6px;
+      font-size: 12px;
+      font-weight: 600;
+      text-transform: uppercase;
+      letter-spacing: 0.1em;
+    }
+    .modal-btn-cancel {
+      background: #292524;
+      color: #e7e5e4;
+    }
+    .modal-btn-confirm {
+      background: #d4ff3a;
+      color: #000;
+    }
+  </style>
+</head>
+<body>
+  <div class="app">
+    <!-- HEADER -->
+    <div class="header">
+      <div class="header-inner">
+        <div class="header-top">
+          <div class="logo">
+            <div class="logo-icon">
+              <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5" stroke-linecap="round" stroke-linejoin="round"><path d="M6 4v16"/><path d="M18 4v16"/><path d="M3 8v8"/><path d="M21 8v8"/><path d="M6 12h12"/></svg>
+            </div>
+            <span class="logo-text">Iron Log</span>
+          </div>
+          <span class="today-label" id="today-label"></span>
+        </div>
+
+        <div class="freq-row" id="freq-row">
+          <button class="freq-btn" data-freq="3">3× / week</button>
+          <button class="freq-btn" data-freq="4">4× / week</button>
+          <button class="freq-btn" data-freq="5">5× / week</button>
+        </div>
+
+        <div class="day-row" id="day-row"></div>
+      </div>
+      <div class="progress-bar">
+        <div class="progress-fill" id="progress-fill"></div>
+      </div>
+    </div>
+
+    <!-- WORKOUT HEADER -->
+    <div class="workout-header">
+      <h1 class="workout-name" id="workout-name">—</h1>
+      <p class="workout-focus" id="workout-focus">—</p>
+      <div class="workout-stats">
+        <span>
+          <svg class="stat-flame" width="12" height="12" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" style="vertical-align: -2px;"><path d="M8.5 14.5A2.5 2.5 0 0 0 11 12c0-1.38-.5-2-1-3-1.072-2.143-.224-4.054 2-6 .5 2.5 2 4.9 4 6.5 2 1.6 3 3.5 3 5.5a7 7 0 1 1-14 0c0-1.153.433-2.294 1-3a2.5 2.5 0 0 0 2.5 2.5z"/></svg>
+          <span id="sets-counter">0/0 sets</span>
+        </span>
+        <span class="stat-sep">·</span>
+        <span id="ex-counter">0 exercises</span>
+      </div>
+    </div>
+
+    <!-- EXERCISE LIST -->
+    <div class="exercise-list" id="exercise-list"></div>
+
+    <!-- RESET -->
+    <button class="reset-btn" id="reset-btn">
+      <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M3 12a9 9 0 1 0 9-9 9.75 9.75 0 0 0-6.74 2.74L3 8"/><path d="M3 3v5h5"/></svg>
+      Reset day
+    </button>
+
+    <!-- COMPLETE BADGE -->
+    <div class="complete-badge" id="complete-badge" style="display: none;">
+      <p class="complete-title">Workout complete</p>
+      <p class="complete-sub">Recovery starts now. Sleep 7–9 hrs. Hit protein.</p>
+    </div>
+
+    <!-- FOOTER -->
+    <div class="footer">
+      <p class="footer-label">Built on evidence</p>
+      <ul class="footer-list">
+        <li>10–20 sets per muscle / week (Pelland 2025 meta-regression)</li>
+        <li>Each muscle trained 2×+ weekly (Schoenfeld 2016)</li>
+        <li>RPE 7–9 — leave 1–3 reps in reserve</li>
+        <li>Progressive overload — add reps or weight weekly</li>
+      </ul>
+    </div>
+  </div>
+
+  <!-- RESET MODAL -->
+  <div class="modal-backdrop" id="modal" style="display: none;">
+    <div class="modal">
+      <h3 class="modal-title">Reset this day?</h3>
+      <p class="modal-text" id="modal-text">All set completions will be cleared.</p>
+      <div class="modal-actions">
+        <button class="modal-btn modal-btn-cancel" id="modal-cancel">Cancel</button>
+        <button class="modal-btn modal-btn-confirm" id="modal-confirm">Reset</button>
+      </div>
+    </div>
+  </div>
+
+  <script>
+    const WORKOUTS = {
+      3: [
+        { name: 'Full body — strength', focus: 'Heavy compounds. Build the base.', exercises: [
+          { name: 'Goblet squat', sets: 4, reps: '6–8', rest: 150, rpe: '8', muscles: 'Quads · glutes · core', notes: 'Hold one DB at chest, elbows tucked. Drive through heels, knees track over toes. Brief pause at depth.' },
+          { name: 'DB bench press', sets: 4, reps: '6–8', rest: 150, rpe: '8', muscles: 'Chest · triceps · front delts', notes: 'Tuck elbows ~45°. Control the eccentric (~2s down). Press up and slightly together at the top.' },
+          { name: 'DB Romanian deadlift', sets: 3, reps: '8–10', rest: 120, rpe: '7', muscles: 'Hamstrings · glutes · lower back', notes: 'Hinge at hips, soft knees. Drag DBs down legs. Stop when you feel a deep hamstring stretch.' },
+          { name: 'Single-arm DB row', sets: 3, reps: '8–10', rest: 90, rpe: '8', muscles: 'Lats · mid-back · biceps', notes: 'Brace opposite knee/hand on bench. Drive elbow back along ribs — not flared up.' },
+          { name: 'DB shoulder press', sets: 3, reps: '8–10', rest: 120, rpe: '8', muscles: 'Shoulders · triceps', notes: 'Seated for stability. Press to full lockout. Lower until elbows just below shoulders.' },
+          { name: 'DB bicep curl', sets: 3, reps: '10–12', rest: 75, rpe: '8', muscles: 'Biceps', notes: 'No swing. Supinate (twist palm up) on the way up. Slow 2s negative.' }
+        ]},
+        { name: 'Full body — hypertrophy', focus: 'Volume and stretch under load.', exercises: [
+          { name: 'Bulgarian split squat', sets: 3, reps: '8–10 ea', rest: 120, rpe: '8', muscles: 'Quads · glutes', notes: 'Rear foot elevated on bench/couch. Front knee tracks over toes. Lean torso slightly forward for more glute.' },
+          { name: 'DB incline press', sets: 4, reps: '8–10', rest: 120, rpe: '8', muscles: 'Upper chest · shoulders', notes: 'Set bench to 30–45°. Focus on stretch at the bottom for upper chest growth.' },
+          { name: 'DB pullover', sets: 3, reps: '10–12', rest: 90, rpe: '8', muscles: 'Lats · chest · serratus', notes: 'Lie across bench, hips low. Hold one DB overhead with both hands. Stretch deep, then pull back over chest.' },
+          { name: 'DB lateral raise', sets: 4, reps: '12–15', rest: 60, rpe: '9', muscles: 'Side delts', notes: 'Slight forward lean. Lead with elbows, not hands. Pinky-up at top. Control on the way down.' },
+          { name: 'DB hammer curl', sets: 3, reps: '10–12', rest: 60, rpe: '8', muscles: 'Brachialis · forearms', notes: 'Neutral grip (palms facing each other). Builds arm thickness more than supinated curls.' },
+          { name: 'DB skullcrusher', sets: 3, reps: '10–12', rest: 75, rpe: '8', muscles: 'Triceps', notes: 'Lie on bench. Lower DBs to sides of forehead. Keep elbows pointed at ceiling — minimal flare.' }
+        ]},
+        { name: 'Full body — variation', focus: 'Posterior chain & stability.', exercises: [
+          { name: 'DB front squat', sets: 3, reps: '8–10', rest: 120, rpe: '8', muscles: 'Quads · core · upper back', notes: 'Two DBs racked at shoulders. Stays more upright than goblet — hits quads hard.' },
+          { name: 'DB floor press', sets: 3, reps: '8–10', rest: 120, rpe: '8', muscles: 'Chest · triceps', notes: 'Lie on floor. Elbows touch and reset each rep. Triceps-dominant variation.' },
+          { name: 'DB stiff-leg deadlift', sets: 3, reps: '10–12', rest: 90, rpe: '8', muscles: 'Hamstrings · glutes', notes: 'Knees stay near locked. Hinge slow. Maximum hamstring stretch.' },
+          { name: 'Renegade row', sets: 3, reps: '8 ea', rest: 90, rpe: '8', muscles: 'Back · core · shoulders', notes: 'Plank on DBs, feet wide for stability. Row one DB at a time, hips square.' },
+          { name: 'DB Arnold press', sets: 3, reps: '8–10', rest: 90, rpe: '8', muscles: 'All 3 delt heads', notes: 'Start palms facing you. Rotate out as you press up. Hits front and side delts.' },
+          { name: 'DB calf raise', sets: 4, reps: '12–15', rest: 60, rpe: '9', muscles: 'Calves', notes: 'Stand on a plate or step. Full stretch at bottom, hard squeeze at top. Pause 1s up.' }
+        ]}
+      ],
+      4: [
+        { name: 'Upper A — strength', focus: 'Heavy push & pull.', exercises: [
+          { name: 'DB bench press', sets: 4, reps: '6–8', rest: 150, rpe: '8', muscles: 'Chest · triceps · front delts', notes: 'Tuck elbows ~45°. Control the eccentric (~2s down).' },
+          { name: 'DB bent-over row', sets: 4, reps: '6–8', rest: 150, rpe: '8', muscles: 'Lats · mid-back · biceps', notes: 'Hinge ~45°, neutral spine. Pull DBs to hip, squeeze shoulder blades.' },
+          { name: 'DB shoulder press', sets: 3, reps: '8–10', rest: 120, rpe: '8', muscles: 'Shoulders · triceps', notes: 'Seated. Press to lockout. Lower under control.' },
+          { name: 'DB pullover', sets: 3, reps: '10–12', rest: 90, rpe: '8', muscles: 'Lats · chest', notes: 'Deep stretch at the bottom — that\'s where the growth is.' },
+          { name: 'DB bicep curl', sets: 3, reps: '8–10', rest: 75, rpe: '8', muscles: 'Biceps', notes: 'Supinated curl. No body english.' },
+          { name: 'DB skullcrusher', sets: 3, reps: '8–10', rest: 75, rpe: '8', muscles: 'Triceps', notes: 'Keep elbows stacked. Stretch the long head.' }
+        ]},
+        { name: 'Lower A — strength', focus: 'Heavy squat & hinge.', exercises: [
+          { name: 'Goblet squat', sets: 4, reps: '6–8', rest: 150, rpe: '8', muscles: 'Quads · glutes · core', notes: 'Hold one heavy DB at chest. Sit between heels. Pause at depth.' },
+          { name: 'DB Romanian deadlift', sets: 4, reps: '8–10', rest: 120, rpe: '8', muscles: 'Hamstrings · glutes', notes: 'Hinge at hips, soft knees. Slow eccentric. Drive hips through at top.' },
+          { name: 'Bulgarian split squat', sets: 3, reps: '8–10 ea', rest: 90, rpe: '8', muscles: 'Quads · glutes', notes: 'Rear foot elevated. Lean slightly forward to bias glutes.' },
+          { name: 'DB single-leg RDL', sets: 3, reps: '10–12 ea', rest: 75, rpe: '8', muscles: 'Hamstrings · glutes · balance', notes: 'Hinge on one leg, opposite leg extends back. Slow and controlled.' },
+          { name: 'DB calf raise', sets: 4, reps: '12–15', rest: 60, rpe: '9', muscles: 'Calves', notes: 'Stand on a plate. Full ROM. 1s pause at top.' }
+        ]},
+        { name: 'Upper B — hypertrophy', focus: 'Volume on chest, back, shoulders.', exercises: [
+          { name: 'DB incline press', sets: 4, reps: '8–10', rest: 120, rpe: '8', muscles: 'Upper chest · shoulders', notes: 'Bench at 30–45°. Stretch deeply at the bottom.' },
+          { name: 'Single-arm DB row', sets: 4, reps: '8–10', rest: 90, rpe: '8', muscles: 'Lats · mid-back', notes: 'Brace on bench. Long stretch at bottom, drive elbow back.' },
+          { name: 'DB Arnold press', sets: 3, reps: '10–12', rest: 90, rpe: '8', muscles: 'All 3 delt heads', notes: 'Rotate from neutral to overhand as you press.' },
+          { name: 'DB lateral raise', sets: 4, reps: '12–15', rest: 60, rpe: '9', muscles: 'Side delts', notes: 'Lead with elbows. Slight lean forward. Don\'t rush the eccentric.' },
+          { name: 'DB rear delt fly', sets: 3, reps: '12–15', rest: 60, rpe: '9', muscles: 'Rear delts · traps', notes: 'Bend over ~45°. Slight bend in elbows. Lead with pinkies.' },
+          { name: 'DB hammer curl', sets: 3, reps: '10–12', rest: 60, rpe: '8', muscles: 'Brachialis · forearms', notes: 'Neutral grip. Don\'t swing.' },
+          { name: 'DB overhead tricep ext.', sets: 3, reps: '10–12', rest: 75, rpe: '8', muscles: 'Triceps (long head)', notes: 'Hold one DB overhead with both hands. Stretches the long head.' }
+        ]},
+        { name: 'Lower B — hypertrophy', focus: 'Quad emphasis & single-leg.', exercises: [
+          { name: 'DB front squat', sets: 4, reps: '8–10', rest: 120, rpe: '8', muscles: 'Quads · core', notes: 'DBs racked on shoulders. More upright than goblet. Knees-over-toes if mobility allows.' },
+          { name: 'DB stiff-leg deadlift', sets: 4, reps: '10–12', rest: 90, rpe: '8', muscles: 'Hamstrings · glutes', notes: 'Near-locked knees. Pure hinge. Max hamstring stretch.' },
+          { name: 'DB reverse lunge', sets: 3, reps: '10 ea', rest: 75, rpe: '8', muscles: 'Quads · glutes', notes: 'Step back, drop rear knee toward floor. Drive through front heel.' },
+          { name: 'DB step-up', sets: 3, reps: '10 ea', rest: 75, rpe: '8', muscles: 'Quads · glutes', notes: 'Use a sturdy bench. Drive through the heel of the working leg.' },
+          { name: 'DB calf raise', sets: 4, reps: '15–20', rest: 60, rpe: '9', muscles: 'Calves', notes: 'High reps. Full stretch and squeeze on every rep.' }
+        ]}
+      ],
+      5: [
+        { name: 'Push', focus: 'Chest, shoulders, triceps.', exercises: [
+          { name: 'DB bench press', sets: 4, reps: '6–8', rest: 150, rpe: '8', muscles: 'Chest · triceps · front delts', notes: 'Heavy. Tuck elbows ~45°. Control the eccentric.' },
+          { name: 'DB incline press', sets: 3, reps: '8–10', rest: 120, rpe: '8', muscles: 'Upper chest', notes: 'Bench at 30–45°. Stretch at bottom.' },
+          { name: 'DB shoulder press', sets: 3, reps: '8–10', rest: 120, rpe: '8', muscles: 'Shoulders · triceps', notes: 'Seated. Full lockout overhead.' },
+          { name: 'DB lateral raise', sets: 4, reps: '12–15', rest: 60, rpe: '9', muscles: 'Side delts', notes: 'The mass-builder for delt width. Lead with elbows.' },
+          { name: 'DB overhead tricep ext.', sets: 3, reps: '10–12', rest: 75, rpe: '8', muscles: 'Triceps (long head)', notes: 'One DB, both hands. Stretches long head.' },
+          { name: 'DB skullcrusher', sets: 3, reps: '10–12', rest: 75, rpe: '8', muscles: 'Triceps', notes: 'Lie on bench. Elbows stacked, not flared.' }
+        ]},
+        { name: 'Pull', focus: 'Back, rear delts, biceps.', exercises: [
+          { name: 'DB bent-over row', sets: 4, reps: '6–8', rest: 150, rpe: '8', muscles: 'Lats · mid-back', notes: 'Hinge ~45°. Pull to hips. Squeeze the bottom of every rep.' },
+          { name: 'Single-arm DB row', sets: 3, reps: '8–10', rest: 90, rpe: '8', muscles: 'Lats · mid-back', notes: 'Long stretch. Drive elbow back along ribs.' },
+          { name: 'DB pullover', sets: 3, reps: '10–12', rest: 90, rpe: '8', muscles: 'Lats · chest', notes: 'Lats love this. Deep stretch overhead.' },
+          { name: 'DB rear delt fly', sets: 3, reps: '12–15', rest: 60, rpe: '9', muscles: 'Rear delts', notes: 'Bent over. Slight elbow bend. Slow tempo.' },
+          { name: 'DB bicep curl', sets: 3, reps: '8–10', rest: 75, rpe: '8', muscles: 'Biceps', notes: 'Supinated. Slow negative. No swing.' },
+          { name: 'DB hammer curl', sets: 3, reps: '10–12', rest: 60, rpe: '8', muscles: 'Brachialis · forearms', notes: 'Neutral grip. Adds arm thickness.' }
+        ]},
+        { name: 'Legs', focus: 'Squat, hinge, single-leg.', exercises: [
+          { name: 'Goblet squat', sets: 4, reps: '6–8', rest: 150, rpe: '8', muscles: 'Quads · glutes', notes: 'Heavy DB at chest. Pause briefly at the bottom.' },
+          { name: 'DB Romanian deadlift', sets: 4, reps: '8–10', rest: 120, rpe: '8', muscles: 'Hamstrings · glutes', notes: 'Hinge, soft knees. Drive hips through at top.' },
+          { name: 'Bulgarian split squat', sets: 3, reps: '8–10 ea', rest: 90, rpe: '8', muscles: 'Quads · glutes', notes: 'Rear foot elevated. Slight forward lean for glute bias.' },
+          { name: 'DB reverse lunge', sets: 3, reps: '10 ea', rest: 75, rpe: '8', muscles: 'Quads · glutes', notes: 'Step back, rear knee toward floor.' },
+          { name: 'DB calf raise', sets: 4, reps: '12–15', rest: 60, rpe: '9', muscles: 'Calves', notes: 'Full stretch and squeeze. 1s pause at top.' }
+        ]},
+        { name: 'Upper — volume', focus: 'Extra arms, shoulders, back.', exercises: [
+          { name: 'DB incline press', sets: 4, reps: '8–10', rest: 120, rpe: '8', muscles: 'Upper chest', notes: 'Different angle from day 1. Stretch deep.' },
+          { name: 'Chest-supported DB row', sets: 4, reps: '8–10', rest: 90, rpe: '8', muscles: 'Mid-back · lats', notes: 'Lie chest-down on incline bench. Pure back, no momentum.' },
+          { name: 'DB Arnold press', sets: 3, reps: '10–12', rest: 90, rpe: '8', muscles: 'All delt heads', notes: 'Start palms-in, rotate out as you press.' },
+          { name: 'DB lateral raise', sets: 3, reps: '12–15', rest: 60, rpe: '9', muscles: 'Side delts', notes: 'Second hit this week. Higher reps, focus on form.' },
+          { name: 'DB hammer curl', sets: 3, reps: '10–12', rest: 60, rpe: '8', muscles: 'Brachialis · forearms', notes: 'Neutral grip.' },
+          { name: 'DB tricep kickback', sets: 3, reps: '12–15', rest: 60, rpe: '9', muscles: 'Triceps', notes: 'Hinge over, upper arm parallel to floor. Squeeze at full extension.' }
+        ]},
+        { name: 'Lower — posterior', focus: 'Glutes & hamstrings emphasis.', exercises: [
+          { name: 'DB stiff-leg deadlift', sets: 4, reps: '8–10', rest: 150, rpe: '8', muscles: 'Hamstrings · glutes', notes: 'Heavy. Near-locked knees. Deep stretch.' },
+          { name: 'DB front squat', sets: 3, reps: '8–10', rest: 120, rpe: '8', muscles: 'Quads · core', notes: 'DBs at shoulders. More upright torso, more quad.' },
+          { name: 'DB step-up', sets: 3, reps: '10 ea', rest: 75, rpe: '8', muscles: 'Quads · glutes', notes: 'Tall step. Drive through working heel — don\'t push off back foot.' },
+          { name: 'DB single-leg RDL', sets: 3, reps: '10 ea', rest: 75, rpe: '8', muscles: 'Hamstrings · glutes · balance', notes: 'Slow and controlled. Hinge on one leg.' },
+          { name: 'DB calf raise', sets: 4, reps: '15–20', rest: 60, rpe: '9', muscles: 'Calves', notes: 'High-rep day. Burn out the calves.' }
+        ]}
+      ]
+    };
+
+    const STORAGE_KEY = 'iron-log-v1';
+    let state = { frequency: 4, currentDay: 0, completions: {}, expanded: null };
+
+    function load() {
+      try {
+        const raw = localStorage.getItem(STORAGE_KEY);
+        if (raw) {
+          const s = JSON.parse(raw);
+          if (s.frequency) state.frequency = s.frequency;
+          if (typeof s.currentDay === 'number') state.currentDay = s.currentDay;
+          if (s.completions) state.completions = s.completions;
+        }
+      } catch (e) {}
+    }
+
+    function save() {
+      try {
+        localStorage.setItem(STORAGE_KEY, JSON.stringify({
+          frequency: state.frequency,
+          currentDay: state.currentDay,
+          completions: state.completions
+        }));
+      } catch (e) {}
+    }
+
+    function setKey(f, d, e, s) { return f + '-' + d + '-' + e + '-' + s; }
+
+    function render() {
+      const today = new Date().toLocaleDateString('en-US', { weekday: 'long' });
+      document.getElementById('today-label').textContent = today;
+
+      document.querySelectorAll('.freq-btn').forEach(btn => {
+        btn.classList.toggle('active', parseInt(btn.dataset.freq, 10) === state.frequency);
+      });
+
+      const workouts = WORKOUTS[state.frequency];
+      if (state.currentDay >= workouts.length) state.currentDay = 0;
+      const wk = workouts[state.currentDay];
+
+      const dayRow = document.getElementById('day-row');
+      dayRow.innerHTML = '';
+      workouts.forEach((w, idx) => {
+        const b = document.createElement('button');
+        b.className = 'day-btn' + (idx === state.currentDay ? ' active' : '');
+        b.textContent = 'Day ' + (idx + 1);
+        b.onclick = () => { state.currentDay = idx; state.expanded = null; save(); render(); };
+        dayRow.appendChild(b);
+      });
+
+      document.getElementById('workout-name').textContent = wk.name;
+      document.getElementById('workout-focus').textContent = wk.focus;
+
+      let total = 0, done = 0;
+      wk.exercises.forEach((ex, i) => {
+        total += ex.sets;
+        for (let s = 0; s < ex.sets; s++) {
+          if (state.completions[setKey(state.frequency, state.currentDay, i, s)]) done++;
+        }
+      });
+      const pct = total ? (done / total) * 100 : 0;
+      document.getElementById('progress-fill').style.width = pct + '%';
+      document.getElementById('sets-counter').textContent = done + '/' + total + ' sets';
+      document.getElementById('ex-counter').textContent = wk.exercises.length + ' exercises';
+
+      const list = document.getElementById('exercise-list');
+      list.innerHTML = '';
+
+      wk.exercises.forEach((ex, exIdx) => {
+        let exDone = 0;
+        for (let s = 0; s < ex.sets; s++) {
+          if (state.completions[setKey(state.frequency, state.currentDay, exIdx, s)]) exDone++;
+        }
+        const allDone = exDone === ex.sets;
+
+        const card = document.createElement('div');
+        card.className = 'exercise-card' + (allDone ? ' done' : '');
+
+        const num = String(exIdx + 1).padStart(2, '0');
+        let html = '<div class="ex-header">';
+        html += '<div class="ex-title-block">';
+        html += '<div class="ex-name-row">';
+        html += '<span class="ex-num">' + num + '</span>';
+        html += '<h3 class="ex-name">' + ex.name + '</h3>';
+        html += '</div>';
+        html += '<p class="ex-muscles">' + ex.muscles + '</p>';
+        html += '</div>';
+        html += '<button class="info-btn" data-info="' + exIdx + '" aria-label="Form cues">';
+        html += '<svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><circle cx="12" cy="12" r="10"/><path d="M12 16v-4"/><path d="M12 8h.01"/></svg>';
+        html += '</button>';
+        html += '</div>';
+
+        html += '<div class="ex-stats">';
+        html += '<span><span class="stat-num">' + ex.sets + '</span><span class="stat-label">sets</span></span>';
+        html += '<span class="stat-sep-sm">×</span>';
+        html += '<span><span class="stat-num">' + ex.reps + '</span><span class="stat-label">reps</span></span>';
+        html += '<span class="stat-sep-sm">·</span>';
+        html += '<span class="stat-rpe">RPE ' + ex.rpe + '</span>';
+        html += '<span class="stat-sep-sm">·</span>';
+        html += '<span><span class="stat-num">' + ex.rest + 's</span><span class="stat-label">rest</span></span>';
+        html += '</div>';
+
+        html += '<div class="set-row">';
+        for (let s = 0; s < ex.sets; s++) {
+          const key = setKey(state.frequency, state.currentDay, exIdx, s);
+          const isDone = !!state.completions[key];
+          html += '<button class="set-btn' + (isDone ? ' done' : '') + '" data-ex="' + exIdx + '" data-set="' + s + '" aria-label="Set ' + (s + 1) + '">';
+          html += isDone
+            ? '<svg class="check" viewBox="0 0 24 24"><polyline points="20 6 9 17 4 12"/></svg>'
+            : (s + 1);
+          html += '</button>';
+        }
+        html += '</div>';
+
+        if (state.expanded === exIdx) {
+          html += '<div class="ex-notes">';
+          html += '<p class="notes-label">Form cues</p>';
+          html += '<p class="notes-text">' + ex.notes + '</p>';
+          html += '</div>';
+        }
+
+        card.innerHTML = html;
+        list.appendChild(card);
+      });
+
+      // Wire up dynamic buttons
+      list.querySelectorAll('.set-btn').forEach(b => {
+        b.onclick = () => {
+          const exIdx = parseInt(b.dataset.ex, 10);
+          const sIdx = parseInt(b.dataset.set, 10);
+          const k = setKey(state.frequency, state.currentDay, exIdx, sIdx);
+          if (state.completions[k]) delete state.completions[k];
+          else state.completions[k] = true;
+          save();
+          render();
+        };
+      });
+      list.querySelectorAll('.info-btn').forEach(b => {
+        b.onclick = () => {
+          const exIdx = parseInt(b.dataset.info, 10);
+          state.expanded = state.expanded === exIdx ? null : exIdx;
+          render();
+        };
+      });
+
+      // Complete badge
+      document.getElementById('complete-badge').style.display = (pct === 100 && total > 0) ? 'block' : 'none';
+    }
+
+    // Frequency clicks
+    document.querySelectorAll('.freq-btn').forEach(btn => {
+      btn.onclick = () => {
+        state.frequency = parseInt(btn.dataset.freq, 10);
+        state.currentDay = 0;
+        state.expanded = null;
+        save();
+        render();
+      };
+    });
+
+    // Reset modal
+    const modal = document.getElementById('modal');
+    document.getElementById('reset-btn').onclick = () => {
+      const wk = WORKOUTS[state.frequency][state.currentDay];
+      document.getElementById('modal-text').textContent = 'All set completions for ' + wk.name + ' will be cleared.';
+      modal.style.display = 'flex';
+    };
+    document.getElementById('modal-cancel').onclick = () => { modal.style.display = 'none'; };
+    document.getElementById('modal-confirm').onclick = () => {
+      const prefix = state.frequency + '-' + state.currentDay + '-';
+      Object.keys(state.completions).forEach(k => {
+        if (k.indexOf(prefix) === 0) delete state.completions[k];
+      });
+      save();
+      render();
+      modal.style.display = 'none';
+    };
+    modal.onclick = (e) => { if (e.target === modal) modal.style.display = 'none'; };
+
+    load();
+    render();
+  </script>
+</body>
+</html>
